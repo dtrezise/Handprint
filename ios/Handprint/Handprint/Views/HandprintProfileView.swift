@@ -13,9 +13,34 @@ struct HandprintProfileView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("@\(openedHandle)", systemImage: "link")
                                 .font(.headline)
-                            Text("Public profile deep links are wired. This pilot only has the local profile loaded until backend profiles are connected.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            if let publicProfile = store.loadedPublicProfile {
+                                Text(publicProfile.profile.statement)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 10) {
+                                    ForEach(publicProfile.profile.highlights.prefix(2)) { highlight in
+                                        MetricTile(value: highlight.value, label: highlight.label, systemImage: "sparkles")
+                                    }
+                                }
+                                Text("What they are doing next")
+                                    .font(.headline)
+                                ForEach(publicProfile.nextActions.prefix(2)) { action in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(action.title)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text("\(action.startsAt) - \(action.neighborhood)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(HandprintTheme.paper, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
+                            } else {
+                                Text("Loading public Handprint...")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .handprintCard()
                     }
@@ -43,6 +68,25 @@ struct HandprintProfileView: View {
                                 .padding(12)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(HandprintTheme.paper, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
+                        }
+
+                        if !store.reports.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Report history")
+                                    .font(.headline)
+                                ForEach(store.reports.prefix(5)) { report in
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(report.reason.rawValue)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text(store.actions.first(where: { $0.id == report.eventId })?.title ?? report.eventId)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(HandprintTheme.paper, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
                             }
                         }
                     }

@@ -102,6 +102,7 @@ private struct ActionCard: View {
                 .buttonStyle(.borderedProminent)
                 .tint(rsvp == nil ? HandprintTheme.ink : HandprintTheme.moss)
                 .disabled(!isJoinable)
+                .accessibilityIdentifier("action-rsvp-\(action.id)")
             }
         }
         .handprintCard()
@@ -233,9 +234,14 @@ private struct EventDetailView: View {
                     .tint(HandprintTheme.coral)
 
                     if didReport {
-                        Text("Sent to the trust queue.")
-                            .font(.footnote)
-                            .foregroundStyle(HandprintTheme.moss)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(store.lastReportConfirmation?.message ?? "Sent to the trust queue.")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(HandprintTheme.moss)
+                            Text("You can see report history on your Handprint tab during the pilot.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .handprintCard()

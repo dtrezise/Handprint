@@ -13,7 +13,7 @@ import {
 
 export type EngagementLevel = "Observer" | "Participant" | "Helper" | "Organizer";
 export type TrustTier = "Anchor partner" | "Verified" | "Pending review" | "Escalated";
-export type EventStatus = "approved" | "pending" | "escalated";
+export type EventStatus = "approved" | "pending" | "escalated" | "rejected";
 export type RsvpStatus = "saved" | "going" | "checked_in" | "confirmed";
 
 export type EventCategory =

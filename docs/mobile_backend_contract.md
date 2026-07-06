@@ -61,14 +61,16 @@ Implemented mock endpoints:
 - `POST /api/mobile/rsvp`
 - `POST /api/mobile/checkin`
 - `POST /api/mobile/report`
+- `POST /api/mobile/organizer-submit`
+- `POST /api/mobile/review`
 
 Remaining backend work:
 
 1. Replace mock endpoints with Supabase-backed queries.
 2. `DAN NEEDED` Decide Supabase/backend account owner and billing.
 3. Add Sign in with Apple identity mapping after Apple team setup.
-4. Add organizer submission endpoint.
-5. Add review decision endpoint.
-6. Add public profile endpoint backed by real profile privacy settings.
-7. `DAN NEEDED` Choose public domain for universal links.
-8. Add universal link association for the chosen domain.
+4. Add public profile endpoint backed by real profile privacy settings.
+5. `DAN NEEDED` Choose public domain for universal links.
+6. Add universal link association for the chosen domain.
+7. Add server-side audit logs for report and review decisions.
+8. Add authenticated organizer/admin authorization.

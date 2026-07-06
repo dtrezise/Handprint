@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 struct OnboardingView: View {
@@ -42,6 +43,7 @@ struct OnboardingView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(HandprintTheme.ink)
+                    .accessibilityIdentifier("onboarding-primary-button")
                 }
                 .padding(18)
             }
@@ -137,9 +139,25 @@ struct OnboardingView: View {
                     Label("Verified organizers come first", systemImage: "checkmark.seal")
                     Label("Every match explains why it appears", systemImage: "list.bullet.rectangle")
                     Label("Your public Handprint shows verified participation, not popularity", systemImage: "hand.raised")
-                    Label("Sign in with Apple is the planned account path", systemImage: "apple.logo")
+                    Label("Sign in with Apple will protect accounts without social graph imports", systemImage: "apple.logo")
                 }
                 .font(.subheadline.weight(.semibold))
+                .handprintCard()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Account shell")
+                        .font(.headline)
+                    SignInWithAppleButton(.continue) { _ in
+                    } onCompletion: { _ in
+                        store.authState = .signedIn
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    Text("Apple account entitlements are not enabled yet. This is the production account path shell.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 .handprintCard()
 
                 VStack(alignment: .leading, spacing: 8) {

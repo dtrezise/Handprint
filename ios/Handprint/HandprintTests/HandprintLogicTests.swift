@@ -1,6 +1,7 @@
 import XCTest
 @testable import Handprint
 
+@MainActor
 final class HandprintLogicTests: XCTestCase {
     func testRecommendationExplainsUsefulMatch() {
         let store = HandprintStore()

@@ -110,7 +110,7 @@ struct Recommendation: Identifiable {
     var reasons: [String]
 }
 
-struct HandprintMark: Identifiable, Codable, Equatable {
+struct HandprintMark: Identifiable, Codable, Equatable, Hashable {
     var id: String
     var eventId: String
     var category: EventCategory
@@ -164,6 +164,39 @@ struct EventReport: Identifiable, Codable, Equatable, Hashable {
     var note: String
     var createdAt: Date
     var status: String
+}
+
+struct ReportConfirmation: Codable, Equatable, Hashable {
+    var reportId: String
+    var actionTitle: String
+    var message: String
+}
+
+struct PublicHighlightSummary: Identifiable, Codable, Equatable, Hashable {
+    var id: String { label }
+    var label: String
+    var value: String
+}
+
+struct PublicProfileSummary: Codable, Equatable, Hashable {
+    var handle: String
+    var displayName: String
+    var locationLabel: String
+    var statement: String
+    var sharePath: String
+    var highlights: [PublicHighlightSummary]
+}
+
+struct PublicCompletedAction: Identifiable, Codable, Equatable, Hashable {
+    var id: String { mark.id }
+    var mark: HandprintMark
+    var action: LocalAction?
+}
+
+struct PublicHandprintPayload: Codable, Equatable, Hashable {
+    var profile: PublicProfileSummary
+    var completed: [PublicCompletedAction]
+    var nextActions: [LocalAction]
 }
 
 struct HandprintAppState: Codable {

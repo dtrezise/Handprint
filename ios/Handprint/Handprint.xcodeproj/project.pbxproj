@@ -17,6 +17,7 @@
 		61E8E2EDEEFC114DF8099D7E /* HandprintGlyphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21590877A5A5648238A43DF9 /* HandprintGlyphView.swift */; };
 		6F2A240D1020400100000001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2A240D1020400100000002 /* OnboardingView.swift */; };
 		6F2A240D1020400100000003 /* HandprintLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2A240D1020400100000004 /* HandprintLogicTests.swift */; };
+		6F2A240D1020400200000001 /* HandprintOnboardingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F2A240D1020400200000002 /* HandprintOnboardingUITests.swift */; };
 		75E1A1B6CCE5A4C26500A08A /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D61017DA7B21CAC97669088 /* Components.swift */; };
 		93AF0DA2F24DCE53811B95C6 /* HandprintProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345CDA0C08EBC488936050C0 /* HandprintProfileView.swift */; };
 		B7B00EACA8DEC8F4D510582A /* ShareHandprintView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C056E68B5B6811D623099D8 /* ShareHandprintView.swift */; };
@@ -27,6 +28,13 @@
 
 /* Begin PBXContainerItemProxy section */
 		6F2A240D1020400100000005 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D9314F4F7074632AC4C5765 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 05FD0CA30A25A4FC1CD3C06D;
+			remoteInfo = Handprint;
+		};
+		6F2A240D1020400200000003 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9D9314F4F7074632AC4C5765 /* Project object */;
 			proxyType = 1;
@@ -46,6 +54,8 @@
 		6F2A240D1020400100000002 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		6F2A240D1020400100000004 /* HandprintLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandprintLogicTests.swift; sourceTree = "<group>"; };
 		6F2A240D1020400100000006 /* HandprintTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HandprintTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F2A240D1020400200000002 /* HandprintOnboardingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandprintOnboardingUITests.swift; sourceTree = "<group>"; };
+		6F2A240D1020400200000004 /* HandprintUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HandprintUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C056E68B5B6811D623099D8 /* ShareHandprintView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHandprintView.swift; sourceTree = "<group>"; };
 		736A77F1ED11EE8F9F0B61E7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		769EFA03095E42E61565E013 /* HandprintModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandprintModels.swift; sourceTree = "<group>"; };
@@ -63,6 +73,7 @@
 			children = (
 				C0C7924A7912E432F3D1F2F9 /* Handprint.app */,
 				6F2A240D1020400100000006 /* HandprintTests.xctest */,
+				6F2A240D1020400200000004 /* HandprintUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,6 +108,7 @@
 			children = (
 				C3E52F0659AFFEEA2060E4B6 /* Handprint */,
 				6F2A240D1020400100000007 /* HandprintTests */,
+				6F2A240D1020400200000005 /* HandprintUITests */,
 				07C451DA72E36B2152E99598 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -107,6 +119,14 @@
 				6F2A240D1020400100000004 /* HandprintLogicTests.swift */,
 			);
 			path = HandprintTests;
+			sourceTree = "<group>";
+		};
+		6F2A240D1020400200000005 /* HandprintUITests */ = {
+			isa = PBXGroup;
+			children = (
+				6F2A240D1020400200000002 /* HandprintOnboardingUITests.swift */,
+			);
+			path = HandprintUITests;
 			sourceTree = "<group>";
 		};
 		A919E284612252B1B80AAFDA /* Store */ = {
@@ -165,6 +185,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6F2A240D1020400200000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXNativeTarget section */
@@ -205,6 +232,25 @@
 			productReference = 6F2A240D1020400100000006 /* HandprintTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		6F2A240D1020400200000007 /* HandprintUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6F2A240D1020400200000008 /* Build configuration list for PBXNativeTarget "HandprintUITests" */;
+			buildPhases = (
+				6F2A240D1020400200000009 /* Sources */,
+				6F2A240D1020400200000006 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6F2A240D1020400200000010 /* PBXTargetDependency */,
+			);
+			name = HandprintUITests;
+			packageProductDependencies = (
+			);
+			productName = HandprintUITests;
+			productReference = 6F2A240D1020400200000004 /* HandprintUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -218,6 +264,10 @@
 						DevelopmentTeam = "";
 					};
 					6F2A240D1020400100000009 = {
+						DevelopmentTeam = "";
+						TestTargetID = 05FD0CA30A25A4FC1CD3C06D;
+					};
+					6F2A240D1020400200000007 = {
 						DevelopmentTeam = "";
 						TestTargetID = 05FD0CA30A25A4FC1CD3C06D;
 					};
@@ -239,6 +289,7 @@
 			targets = (
 				05FD0CA30A25A4FC1CD3C06D /* Handprint */,
 				6F2A240D1020400100000009 /* HandprintTests */,
+				6F2A240D1020400200000007 /* HandprintUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -284,6 +335,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6F2A240D1020400200000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6F2A240D1020400200000001 /* HandprintOnboardingUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -291,6 +350,11 @@
 			isa = PBXTargetDependency;
 			target = 05FD0CA30A25A4FC1CD3C06D /* Handprint */;
 			targetProxy = 6F2A240D1020400100000005 /* PBXContainerItemProxy */;
+		};
+		6F2A240D1020400200000010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 05FD0CA30A25A4FC1CD3C06D /* Handprint */;
+			targetProxy = 6F2A240D1020400200000003 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -426,6 +490,50 @@
 			};
 			name = Release;
 		};
+		6F2A240D1020400200000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.handprint.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Handprint;
+			};
+			name = Debug;
+		};
+		6F2A240D1020400200000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.handprint.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Handprint;
+			};
+			name = Release;
+		};
 		E8830BE0A580E5DDE64CF3FC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -530,6 +638,15 @@
 			buildConfigurations = (
 				6F2A240D1020400100000013 /* Debug */,
 				6F2A240D1020400100000014 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6F2A240D1020400200000008 /* Build configuration list for PBXNativeTarget "HandprintUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6F2A240D1020400200000011 /* Debug */,
+				6F2A240D1020400200000012 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

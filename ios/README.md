@@ -11,7 +11,7 @@ Verified on this Mac:
 - Xcode 26.3 is installed and active.
 - The `Handprint.xcodeproj` builds for iPhone Simulator.
 - The app installs and launches on the iPhone 17 simulator.
-- Native unit tests are wired through the `Handprint` scheme.
+- Native unit tests and onboarding-to-RSVP UI tests are wired through the `Handprint` scheme.
 - XcodeGen is not currently installed, so the checked-in `.xcodeproj` is the source of truth until we install it or regenerate intentionally.
 
 ## Generate The Xcode Project
@@ -36,6 +36,7 @@ If Xcode asks to install simulator components, accept.
 - Framework: SwiftUI
 - URL scheme: `handprint://u/{handle}`
 - Backend key: `HANDPRINT_API_BASE_URL` in `Info.plist`
+- Sign in with Apple UI shell exists; Apple entitlements still require developer account setup.
 
 ## First Native Product Loop
 
@@ -66,3 +67,12 @@ xcodebuild test -project ios/Handprint/Handprint.xcodeproj \
   -destination 'id=825A4969-E9D4-466D-AF1F-8DF00CCE27C1' \
   CODE_SIGNING_ALLOWED=NO
 ```
+
+The test scheme currently covers:
+
+- recommendation logic
+- onboarding/profile persistence
+- organizer submission and sensitive-event escalation
+- user reporting and review escalation
+- public Handprint deep-link routing
+- first-run onboarding to RSVP UI flow

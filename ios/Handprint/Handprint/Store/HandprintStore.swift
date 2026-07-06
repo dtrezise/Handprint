@@ -1,6 +1,7 @@
 import CoreLocation
 import Foundation
 
+@MainActor
 final class HandprintStore: ObservableObject {
     @Published var profile = MockHandprintData.profile
     @Published var actions = MockHandprintData.actions
@@ -13,6 +14,8 @@ final class HandprintStore: ObservableObject {
     @Published var authState: AuthState = .appleReady
     @Published var locationPermission: LocationPermissionState = .notRequested
     @Published var openedPublicHandle: String?
+    @Published var loadedPublicProfile: PublicHandprintPayload?
+    @Published var lastReportConfirmation: ReportConfirmation?
     @Published private(set) var backendConfiguration = BackendConfiguration.localMock
     @Published private(set) var syncStatus = "Using local pilot data"
 
@@ -89,12 +92,14 @@ final class HandprintStore: ObservableObject {
         if url.scheme == "handprint", url.host == "u", let handle = components.first {
             openedPublicHandle = handle
             activeTab = handle == profile.handle ? .share : .handprint
+            loadPublicProfile(handle: handle)
             return
         }
 
         if components.first == "u", let handle = components.dropFirst().first {
             openedPublicHandle = handle
             activeTab = handle == profile.handle ? .share : .handprint
+            loadPublicProfile(handle: handle)
         }
     }
 
@@ -157,21 +162,25 @@ final class HandprintStore: ObservableObject {
         rsvps[action.id] = status
         upsertMark(for: action, status: status)
         persist()
+        postRSVP(status, for: action)
     }
 
     func approve(_ action: LocalAction) {
         update(action, status: .approved, trustTier: .verified, reviewNote: "Approved for pilot listing.")
         persist()
+        postReviewDecision(.approved, for: action)
     }
 
     func escalate(_ action: LocalAction) {
         update(action, status: .escalated, trustTier: .escalated, reviewNote: "Requires additional review before public listing.")
         persist()
+        postReviewDecision(.escalated, for: action)
     }
 
     func reject(_ action: LocalAction) {
         update(action, status: .rejected, trustTier: .escalated, reviewNote: "Rejected from pilot listing. Organizer can revise and resubmit.")
         persist()
+        postReviewDecision(.rejected, for: action)
     }
 
     func report(_ action: LocalAction, reason: EventReportReason, note: String) {
@@ -185,8 +194,14 @@ final class HandprintStore: ObservableObject {
         )
         reports.insert(report, at: 0)
         update(action, status: .escalated, trustTier: .escalated, reviewNote: "User report: \(reason.rawValue).")
+        lastReportConfirmation = ReportConfirmation(
+            reportId: report.id,
+            actionTitle: action.title,
+            message: "Thanks. This went to the trust queue and the action was escalated for review."
+        )
         activeTab = .review
         persist()
+        postReport(report)
     }
 
     func submit(_ draft: OrganizerDraft) {
@@ -227,6 +242,7 @@ final class HandprintStore: ObservableObject {
         selectedActionId = newAction.id
         activeTab = .review
         persist()
+        postOrganizerSubmission(draft, createdAction: newAction)
     }
 
     func resetLocalState() {
@@ -241,6 +257,8 @@ final class HandprintStore: ObservableObject {
         authState = .appleReady
         locationPermission = .notRequested
         openedPublicHandle = nil
+        loadedPublicProfile = nil
+        lastReportConfirmation = nil
         persist()
     }
 
@@ -342,6 +360,67 @@ final class HandprintStore: ObservableObject {
         authState = state.authState
         locationPermission = state.locationPermission
     }
+
+    private func loadPublicProfile(handle: String) {
+        Task {
+            do {
+                let payload = try await apiClient.fetchPublicProfile(handle: handle)
+                await MainActor.run {
+                    loadedPublicProfile = payload
+                    syncStatus = backendConfiguration.usesMockData ? "Using local pilot data" : "Public profile loaded"
+                }
+            } catch {
+                await MainActor.run {
+                    loadedPublicProfile = nil
+                    syncStatus = "Public profile unavailable"
+                }
+            }
+        }
+    }
+
+    private func postRSVP(_ status: RsvpStatus, for action: LocalAction) {
+        Task {
+            do {
+                if status == .checkedIn {
+                    try await apiClient.checkIn(actionId: action.id)
+                } else {
+                    try await apiClient.rsvp(actionId: action.id, status: status)
+                }
+            } catch {
+                await MainActor.run { syncStatus = "Saved locally" }
+            }
+        }
+    }
+
+    private func postOrganizerSubmission(_ draft: OrganizerDraft, createdAction: LocalAction) {
+        Task {
+            do {
+                try await apiClient.submitOrganizerDraft(draft, createdAction: createdAction)
+            } catch {
+                await MainActor.run { syncStatus = "Submission saved locally" }
+            }
+        }
+    }
+
+    private func postReviewDecision(_ decision: EventStatus, for action: LocalAction) {
+        Task {
+            do {
+                try await apiClient.review(actionId: action.id, decision: decision)
+            } catch {
+                await MainActor.run { syncStatus = "Review saved locally" }
+            }
+        }
+    }
+
+    private func postReport(_ report: EventReport) {
+        Task {
+            do {
+                try await apiClient.report(report)
+            } catch {
+                await MainActor.run { syncStatus = "Report saved locally" }
+            }
+        }
+    }
 }
 
 struct HandprintAPIClient {
@@ -366,6 +445,105 @@ struct HandprintAPIClient {
         let url = baseURL.appending(path: "api/mobile/pilot")
         let (data, _) = try await URLSession.shared.data(from: url)
         return try JSONDecoder().decode(HandprintAppState.self, from: data)
+    }
+
+    func fetchPublicProfile(handle: String) async throws -> PublicHandprintPayload {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return PublicHandprintPayload(
+                profile: PublicProfileSummary(
+                    handle: MockHandprintData.profile.handle,
+                    displayName: MockHandprintData.profile.name,
+                    locationLabel: MockHandprintData.profile.launchCommunity,
+                    statement: "A visible record of useful local action and what is next.",
+                    sharePath: "/u/\(MockHandprintData.profile.handle)",
+                    highlights: [
+                        PublicHighlightSummary(label: "Visible marks", value: "\(MockHandprintData.marks.count)"),
+                        PublicHighlightSummary(label: "Local pilot", value: MockHandprintData.profile.launchCommunity),
+                        PublicHighlightSummary(label: "Join next", value: "3")
+                    ]
+                ),
+                completed: MockHandprintData.marks.map { mark in
+                    PublicCompletedAction(mark: mark, action: MockHandprintData.actions.first(where: { $0.id == mark.eventId }))
+                },
+                nextActions: Array(MockHandprintData.actions.filter { $0.status == .approved }.prefix(3))
+            )
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/profile/\(handle)")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(PublicHandprintPayload.self, from: data)
+    }
+
+    func rsvp(actionId: String, status: RsvpStatus) async throws {
+        try await post(["actionId": actionId, "status": status.rawValue], path: "api/mobile/rsvp")
+    }
+
+    func checkIn(actionId: String) async throws {
+        try await post(["actionId": actionId], path: "api/mobile/checkin")
+    }
+
+    func submitOrganizerDraft(_ draft: OrganizerDraft, createdAction: LocalAction) async throws {
+        let payload = OrganizerSubmissionPayload(draft: draft, createdAction: createdAction)
+        try await post(payload, path: "api/mobile/organizer-submit")
+    }
+
+    func review(actionId: String, decision: EventStatus) async throws {
+        try await post(["actionId": actionId, "decision": decision.rawValue], path: "api/mobile/review")
+    }
+
+    func report(_ report: EventReport) async throws {
+        try await post(report, path: "api/mobile/report")
+    }
+
+    private func post<T: Encodable>(_ payload: T, path: String) async throws {
+        guard !configuration.usesMockData, let baseURL = configuration.baseURL else { return }
+
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+    }
+}
+
+private struct OrganizerSubmissionPayload: Encodable {
+    var title: String
+    var organizer: String
+    var organizerWebsite: String
+    var communityAffiliation: String
+    var contactEmail: String
+    var neighborhood: String
+    var locationName: String
+    var startsAt: String
+    var duration: String
+    var capacity: Int
+    var category: String
+    var summary: String
+    var skills: [String]
+    var safetyNote: String
+    var actionId: String
+
+    init(draft: OrganizerDraft, createdAction: LocalAction) {
+        title = draft.title
+        organizer = draft.organizer
+        organizerWebsite = draft.organizerWebsite
+        communityAffiliation = draft.communityAffiliation
+        contactEmail = draft.contactEmail
+        neighborhood = draft.neighborhood
+        locationName = draft.locationName
+        startsAt = draft.startsAt
+        duration = draft.duration
+        capacity = draft.capacity
+        category = draft.category.rawValue
+        summary = draft.summary
+        skills = createdAction.skills
+        safetyNote = draft.safetyNote
+        actionId = createdAction.id
     }
 }
 

@@ -50,6 +50,17 @@
                ReferencedContainer = "container:Handprint.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6F2A240D1020400200000007"
+               BuildableName = "HandprintUITests.xctest"
+               BlueprintName = "HandprintUITests"
+               ReferencedContainer = "container:Handprint.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

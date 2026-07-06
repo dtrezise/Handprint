@@ -43,6 +43,7 @@ targets:
     scheme:
       testTargets:
         - HandprintTests
+        - HandprintUITests
   HandprintTests:
     type: bundle.unit-test
     platform: iOS
@@ -56,5 +57,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.handprint.tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Handprint.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Handprint"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        TARGETED_DEVICE_FAMILY: 1
+        SWIFT_VERSION: 6.0
+  HandprintUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: HandprintUITests
+    dependencies:
+      - target: Handprint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.handprint.uitests
+        TEST_TARGET_NAME: Handprint
         TARGETED_DEVICE_FAMILY: 1
         SWIFT_VERSION: 6.0

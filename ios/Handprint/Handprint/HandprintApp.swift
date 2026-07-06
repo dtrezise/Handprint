@@ -2,7 +2,15 @@ import SwiftUI
 
 @main
 struct HandprintApp: App {
-    @StateObject private var store = HandprintStore()
+    @StateObject private var store: HandprintStore
+
+    init() {
+        let initialStore = HandprintStore()
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset") {
+            initialStore.resetLocalState()
+        }
+        _store = StateObject(wrappedValue: initialStore)
+    }
 
     var body: some Scene {
         WindowGroup {
