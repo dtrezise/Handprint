@@ -1,0 +1,60 @@
+name: Handprint
+options:
+  bundleIdPrefix: com.handprint
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: ""
+targets:
+  Handprint:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Handprint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.handprint.app
+        INFOPLIST_FILE: Handprint/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: 1
+        SUPPORTS_MACCATALYST: false
+        SWIFT_VERSION: 6.0
+    info:
+      path: Handprint/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Handprint
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        HANDPRINT_API_BASE_URL: ""
+        NSLocationWhenInUseUsageDescription: Handprint uses your approximate area to find useful local actions within reach. The pilot does not store precise location history.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.handprint.app
+            CFBundleURLSchemes:
+              - handprint
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    scheme:
+      testTargets:
+        - HandprintTests
+  HandprintTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: HandprintTests
+    dependencies:
+      - target: Handprint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.handprint.tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Handprint.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Handprint"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TARGETED_DEVICE_FAMILY: 1
+        SWIFT_VERSION: 6.0
