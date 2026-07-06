@@ -18,6 +18,7 @@ export function GET() {
     selectedActionId: localActions[0]?.id ?? "",
     isOnboarded: false,
     authState: "appleReady",
-    locationPermission: "notRequested"
+    locationPermission: "notRequested",
+    reports: []
   });
 }

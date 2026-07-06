@@ -14,6 +14,31 @@ struct ReviewQueueView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+
+                    if !store.openReports.isEmpty {
+                        Label("\(store.openReports.count) open reports", systemImage: "exclamationmark.shield")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(HandprintTheme.coral)
+                    }
+                }
+
+                if !store.openReports.isEmpty {
+                    Section("Reports") {
+                        ForEach(store.openReports) { report in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(report.reason.rawValue)
+                                    .font(.headline)
+                                Text(store.actions.first(where: { $0.id == report.eventId })?.title ?? report.eventId)
+                                    .font(.subheadline.weight(.semibold))
+                                if !report.note.isEmpty {
+                                    Text(report.note)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 6)
+                        }
+                    }
                 }
 
                 ForEach(sortedActions) { action in

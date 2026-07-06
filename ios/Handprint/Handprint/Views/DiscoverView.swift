@@ -111,10 +111,14 @@ private struct ActionCard: View {
 private struct EventDetailView: View {
     @EnvironmentObject private var store: HandprintStore
     let action: LocalAction
+    @State private var reportReason: EventReportReason = .misleading
+    @State private var reportNote = ""
+    @State private var didReport = false
 
     private var recommendation: Recommendation { store.score(action: action) }
     private var rsvp: RsvpStatus? { store.rsvps[action.id] }
     private var isJoinable: Bool { action.status == .approved }
+    private var actionShareURL: URL { URL(string: "https://handprint.local/actions/\(action.id)")! }
 
     var body: some View {
         ScrollView {
@@ -194,6 +198,45 @@ private struct EventDetailView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(!isJoinable || rsvp == nil)
+
+                    ShareLink(
+                        item: actionShareURL,
+                        subject: Text(action.title),
+                        message: Text("Join me for \(action.title) through Handprint.")
+                    ) {
+                        Label("Share this action", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .handprintCard()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Report a concern")
+                        .font(.headline)
+                    Picker("Reason", selection: $reportReason) {
+                        ForEach(EventReportReason.allCases) { reason in
+                            Text(reason.rawValue).tag(reason)
+                        }
+                    }
+                    TextField("What should reviewers know?", text: $reportNote, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        store.report(action, reason: reportReason, note: reportNote)
+                        reportNote = ""
+                        didReport = true
+                    } label: {
+                        Label("Send to review", systemImage: "exclamationmark.shield")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(HandprintTheme.coral)
+
+                    if didReport {
+                        Text("Sent to the trust queue.")
+                            .font(.footnote)
+                            .foregroundStyle(HandprintTheme.moss)
+                    }
                 }
                 .handprintCard()
             }

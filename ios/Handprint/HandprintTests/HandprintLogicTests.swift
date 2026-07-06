@@ -36,6 +36,8 @@ final class HandprintLogicTests: XCTestCase {
         let draft = OrganizerDraft(
             title: "Tool library intake",
             organizer: "Northside Tool Library",
+            organizerWebsite: "https://example.org",
+            communityAffiliation: "Northside nonprofit network",
             contactEmail: "ops@example.org",
             neighborhood: "Northside",
             locationName: "Tool Library",
@@ -63,6 +65,8 @@ final class HandprintLogicTests: XCTestCase {
         let draft = OrganizerDraft(
             title: "Youth tutoring intake",
             organizer: "Tutoring Circle",
+            organizerWebsite: "https://example.org",
+            communityAffiliation: "Library partner",
             contactEmail: "ops@example.org",
             neighborhood: "Northside",
             locationName: "Library",
@@ -91,5 +95,17 @@ final class HandprintLogicTests: XCTestCase {
 
         XCTAssertEqual(store.openedPublicHandle, "dan")
         XCTAssertEqual(store.activeTab, .share)
+    }
+
+    func testReportEscalatesActionAndCreatesOpenReport() {
+        let store = HandprintStore()
+        store.resetLocalState()
+
+        let action = MockHandprintData.actions[0]
+        store.report(action, reason: .unsafe, note: "Door instructions are unclear.")
+
+        XCTAssertEqual(store.openReports.count, 1)
+        XCTAssertEqual(store.actions.first(where: { $0.id == action.id })?.status, .escalated)
+        XCTAssertEqual(store.activeTab, .review)
     }
 }

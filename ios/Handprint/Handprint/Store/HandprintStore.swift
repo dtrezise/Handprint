@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 final class HandprintStore: ObservableObject {
@@ -5,6 +6,7 @@ final class HandprintStore: ObservableObject {
     @Published var actions = MockHandprintData.actions
     @Published var marks = MockHandprintData.marks
     @Published var rsvps: [String: RsvpStatus] = ["tenant-rights-clinic": .checkedIn]
+    @Published var reports: [EventReport] = []
     @Published var selectedActionId = MockHandprintData.actions.first?.id ?? ""
     @Published var activeTab: AppTab = .discover
     @Published var isOnboarded = false
@@ -16,6 +18,7 @@ final class HandprintStore: ObservableObject {
 
     private let persistenceKey = "handprint.ios.localState.v1"
     private let apiClient: HandprintAPIClient
+    private let locationManager = CLLocationManager()
 
     init() {
         let configuration = BackendConfiguration.fromBundle()
@@ -58,6 +61,10 @@ final class HandprintStore: ObservableObject {
         actions.filter { $0.status == .pending || $0.status == .escalated }
     }
 
+    var openReports: [EventReport] {
+        reports.filter { $0.status == "open" }
+    }
+
     func completeOnboarding(profile updatedProfile: UserProfile) {
         profile = updatedProfile
         isOnboarded = true
@@ -66,6 +73,8 @@ final class HandprintStore: ObservableObject {
     }
 
     func requestApproximateLocation() {
+        locationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+        locationManager.requestWhenInUseAuthorization()
         locationPermission = .approximateAllowed
         persist()
     }
@@ -165,6 +174,21 @@ final class HandprintStore: ObservableObject {
         persist()
     }
 
+    func report(_ action: LocalAction, reason: EventReportReason, note: String) {
+        let report = EventReport(
+            id: "report-\(action.id)-\(Date().timeIntervalSince1970)",
+            eventId: action.id,
+            reason: reason,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            createdAt: Date(),
+            status: "open"
+        )
+        reports.insert(report, at: 0)
+        update(action, status: .escalated, trustTier: .escalated, reviewNote: "User report: \(reason.rawValue).")
+        activeTab = .review
+        persist()
+    }
+
     func submit(_ draft: OrganizerDraft) {
         guard draft.isSubmittable else { return }
 
@@ -197,7 +221,7 @@ final class HandprintStore: ObservableObject {
             capacity: draft.capacity,
             attending: 0,
             safetyNote: draft.safetyNote.isEmpty ? "Needs pilot safety review." : draft.safetyNote,
-            reviewNote: needsEscalation ? "Sensitive terms detected. Review before listing." : "New organizer submission from \(draft.contactEmail)."
+            reviewNote: needsEscalation ? "Sensitive terms detected. Review before listing." : "New organizer submission from \(draft.contactEmail). Affiliation: \(draft.communityAffiliation)."
         )
         actions.insert(newAction, at: 0)
         selectedActionId = newAction.id
@@ -210,6 +234,7 @@ final class HandprintStore: ObservableObject {
         actions = MockHandprintData.actions
         marks = MockHandprintData.marks
         rsvps = ["tenant-rights-clinic": .checkedIn]
+        reports = []
         selectedActionId = MockHandprintData.actions.first?.id ?? ""
         activeTab = .discover
         isOnboarded = false
@@ -227,6 +252,7 @@ final class HandprintStore: ObservableObject {
             actions = payload.actions
             marks = payload.marks
             rsvps = payload.rsvps
+            reports = payload.reports
             selectedActionId = payload.selectedActionId
             isOnboarded = payload.isOnboarded
             authState = payload.authState
@@ -291,7 +317,8 @@ final class HandprintStore: ObservableObject {
             selectedActionId: selectedActionId,
             isOnboarded: isOnboarded,
             authState: authState,
-            locationPermission: locationPermission
+            locationPermission: locationPermission,
+            reports: reports
         )
         guard let data = try? JSONEncoder().encode(state) else { return }
         UserDefaults.standard.set(data, forKey: persistenceKey)
@@ -309,6 +336,7 @@ final class HandprintStore: ObservableObject {
         actions = state.actions
         marks = state.marks
         rsvps = state.rsvps
+        reports = state.reports
         selectedActionId = state.selectedActionId
         isOnboarded = state.isOnboarded
         authState = state.authState
@@ -329,7 +357,8 @@ struct HandprintAPIClient {
                 selectedActionId: MockHandprintData.actions.first?.id ?? "",
                 isOnboarded: false,
                 authState: .appleReady,
-                locationPermission: .notRequested
+                locationPermission: .notRequested,
+                reports: []
             )
         }
 

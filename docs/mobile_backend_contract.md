@@ -54,11 +54,21 @@ Return enough data to render the first authenticated mobile session:
 
 ## Next Backend Work
 
-1. Replace this read-only pilot endpoint with Supabase-backed queries.
-2. Add Sign in with Apple identity mapping.
-3. Add RSVP mutation endpoint.
-4. Add check-in mutation endpoint.
-5. Add organizer submission endpoint.
-6. Add review decision endpoint.
-7. Add public profile endpoint for `/u/{handle}`.
-8. Add universal link association for `handprint.app`.
+Implemented mock endpoints:
+
+- `GET /api/mobile/pilot`
+- `GET /api/mobile/profile/{handle}`
+- `POST /api/mobile/rsvp`
+- `POST /api/mobile/checkin`
+- `POST /api/mobile/report`
+
+Remaining backend work:
+
+1. Replace mock endpoints with Supabase-backed queries.
+2. `DAN NEEDED` Decide Supabase/backend account owner and billing.
+3. Add Sign in with Apple identity mapping after Apple team setup.
+4. Add organizer submission endpoint.
+5. Add review decision endpoint.
+6. Add public profile endpoint backed by real profile privacy settings.
+7. `DAN NEEDED` Choose public domain for universal links.
+8. Add universal link association for the chosen domain.

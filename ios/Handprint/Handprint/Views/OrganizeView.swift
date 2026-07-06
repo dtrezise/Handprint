@@ -11,6 +11,10 @@ struct OrganizeView: View {
                 Section {
                     TextField("Action title", text: $draft.title)
                     TextField("Organizer", text: $draft.organizer)
+                    TextField("Community affiliation", text: $draft.communityAffiliation)
+                    TextField("Website or social proof", text: $draft.organizerWebsite)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
                     TextField("Contact email", text: $draft.contactEmail)
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)

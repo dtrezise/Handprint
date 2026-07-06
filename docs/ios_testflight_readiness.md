@@ -14,14 +14,14 @@ Handprint can wait on a paid Apple Developer Program account until we are ready 
 
 ## Before TestFlight
 
-1. Enroll or confirm Apple Developer Program membership.
-2. Choose the final Apple team owner.
-3. Confirm final bundle identifier, likely `app.handprint.ios` or `com.handprint.app`.
+1. `DAN NEEDED` Enroll or confirm Apple Developer Program membership.
+2. `DAN NEEDED` Choose the final Apple team owner.
+3. `DAN NEEDED` Confirm final bundle identifier, likely `app.handprint.ios` or `com.handprint.app`.
 4. Set signing team in Xcode.
 5. Add App Store Connect app record.
-6. Prepare beta privacy answers.
-7. Add privacy policy URL.
-8. Decide beta tester cohorts.
+6. `DAN NEEDED` Prepare beta privacy answers.
+7. `DAN NEEDED` Add privacy policy URL.
+8. `DAN NEEDED` Decide beta tester cohorts.
 9. Archive from Xcode.
 10. Upload to App Store Connect.
 11. Run internal TestFlight.

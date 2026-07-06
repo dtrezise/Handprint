@@ -122,6 +122,8 @@ struct HandprintMark: Identifiable, Codable, Equatable {
 struct OrganizerDraft {
     var title = ""
     var organizer = ""
+    var organizerWebsite = ""
+    var communityAffiliation = ""
     var contactEmail = ""
     var neighborhood = ""
     var locationName = ""
@@ -137,10 +139,31 @@ struct OrganizerDraft {
     var isSubmittable: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !organizer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !communityAffiliation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !contactEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             termsAccepted
     }
+}
+
+enum EventReportReason: String, CaseIterable, Identifiable, Codable, Hashable {
+    case misleading = "Misleading details"
+    case unsafe = "Unsafe or harmful"
+    case harassment = "Harassment or intimidation"
+    case campaign = "Campaign or election activity"
+    case youthSafety = "Youth safety concern"
+    case other = "Other"
+
+    var id: String { rawValue }
+}
+
+struct EventReport: Identifiable, Codable, Equatable, Hashable {
+    var id: String
+    var eventId: String
+    var reason: EventReportReason
+    var note: String
+    var createdAt: Date
+    var status: String
 }
 
 struct HandprintAppState: Codable {
@@ -152,6 +175,7 @@ struct HandprintAppState: Codable {
     var isOnboarded: Bool
     var authState: AuthState
     var locationPermission: LocationPermissionState
+    var reports: [EventReport]
 }
 
 struct BackendConfiguration: Codable, Equatable {
