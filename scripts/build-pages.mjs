@@ -74,7 +74,11 @@ try {
   );
 
   await cp(path.resolve(".next/static"), path.join(outputDir, "_next/static"), { recursive: true });
-  await cp(path.resolve("public"), outputDir, { recursive: true, force: true });
+  try {
+    await cp(path.resolve("public"), outputDir, { recursive: true, force: true });
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error;
+  }
   await cp(path.join(outputDir, "index.html"), path.join(outputDir, "404.html"));
   await writeFile(path.join(outputDir, ".nojekyll"), "");
 } finally {
