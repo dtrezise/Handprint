@@ -28,7 +28,7 @@ struct HandprintGlyphView: View {
                     Text("Your Handprint")
                         .font(.caption.weight(.semibold))
                         .tracking(1.2)
-                        .foregroundStyle(HandprintTheme.tide)
+                        .foregroundStyle(HandprintTheme.tideBright)
                     Text("Visible impact identity")
                         .font(.headline)
                 }
@@ -37,7 +37,7 @@ struct HandprintGlyphView: View {
                     .font(.caption.weight(.bold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
-                    .background(.white, in: Capsule())
+                    .background(HandprintTheme.paper, in: Capsule())
             }
 
             Canvas { context, size in
@@ -46,7 +46,7 @@ struct HandprintGlyphView: View {
                 transform = transform.translatedBy(x: (size.width / scale - 460) / 2, y: 0)
 
                 for path in basePaths {
-                    context.stroke(path.applying(transform), with: .color(.black.opacity(0.24)), style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round))
+                    context.stroke(path.applying(transform), with: .color(HandprintTheme.ink.opacity(0.22)), style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round))
                 }
 
                 for (index, mark) in marks.enumerated() {
@@ -56,7 +56,7 @@ struct HandprintGlyphView: View {
                 }
             }
             .frame(height: 250)
-            .background(HandprintTheme.paper, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(HandprintTheme.paper, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .handprintCard()
     }

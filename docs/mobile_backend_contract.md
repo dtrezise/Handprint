@@ -1,6 +1,6 @@
 # Mobile Backend Contract
 
-This is the first contract between the iPhone app and the Handprint backend. The native app already knows how to call `GET /api/mobile/pilot` when `HANDPRINT_API_BASE_URL` is set in `Info.plist`; otherwise it uses local pilot data.
+This is the first contract between the iPhone app and the Handprint backend. The native app uses local pilot data unless `HANDPRINT_API_BASE_URL` is set in `Info.plist`. When configured, it can sync pilot data, profile settings, organizations, impact receipts, social review, and saved Shake connections.
 
 ## Endpoint
 
@@ -23,12 +23,13 @@ Return enough data to render the first authenticated mobile session:
   "profile": {
     "name": "Dan",
     "handle": "dan",
-    "launchCommunity": "Northside pilot",
-    "radiusMiles": 5,
+    "launchCommunity": "Martinsburg, WV",
+    "radiusMiles": 50,
     "interests": ["Food support", "Mutual aid"],
     "skills": ["Writing", "Logistics"],
     "availability": ["Weeknight", "Saturday morning"],
-    "engagementLevel": "Helper"
+    "engagementLevel": "Helper",
+    "rewardsEnabled": true
   },
   "actions": [],
   "marks": [],
@@ -38,7 +39,8 @@ Return enough data to render the first authenticated mobile session:
   "selectedActionId": "food-shelf-saturday",
   "isOnboarded": false,
   "authState": "appleReady",
-  "locationPermission": "notRequested"
+  "locationPermission": "notRequested",
+  "followedWorldChangers": []
 }
 ```
 
@@ -52,25 +54,60 @@ Return enough data to render the first authenticated mobile session:
 
 `LocationPermissionState`: `notRequested`, `approximateAllowed`, `denied`
 
-## Next Backend Work
+`EventListingType`: `action`, `awareness`, `sponsored`, `training`, `fundraiser`
 
-Implemented mock endpoints:
+## Current Mobile Endpoints
 
-- `GET /api/mobile/pilot`
+- `GET /api/mobile/pilot`: first mobile session payload.
+- `GET /api/mobile/profile`: profile settings, reward visibility, and QR state.
+- `POST /api/mobile/profile`: persist default location, reach, reward visibility, and profile settings.
 - `GET /api/mobile/profile/{handle}`
+- `GET /api/mobile/organizations`
+- `GET /api/mobile/organizations/{organizerId}`
+- `GET /api/mobile/impact-receipts`
+- `GET /api/mobile/impact-receipts/{receiptId}`
+- `GET /api/mobile/world-changers`: Shake-network World Changer profiles and saved state.
+- `POST /api/mobile/world-changers`: follow/unfollow a World Changer.
 - `POST /api/mobile/rsvp`
 - `POST /api/mobile/checkin`
 - `POST /api/mobile/report`
 - `POST /api/mobile/organizer-submit`
 - `POST /api/mobile/review`
+- `GET /api/mobile/social`
+- `POST /api/mobile/social`
 
-Remaining backend work:
+## Profile Settings Patch
 
-1. Replace mock endpoints with Supabase-backed queries.
-2. `DAN NEEDED` Decide Supabase/backend account owner and billing.
-3. Add Sign in with Apple identity mapping after Apple team setup.
-4. Add public profile endpoint backed by real profile privacy settings.
-5. `DAN NEEDED` Choose public domain for universal links.
-6. Add universal link association for the chosen domain.
-7. Add server-side audit logs for report and review decisions.
-8. Add authenticated organizer/admin authorization.
+`POST /api/mobile/profile`
+
+```json
+{
+  "profile": {
+    "launchCommunity": "Martinsburg, WV",
+    "radiusMiles": 100,
+    "rewardsEnabled": false
+  }
+}
+```
+
+## World Changer Follow Patch
+
+`POST /api/mobile/world-changers`
+
+```json
+{
+  "handle": "maya-rivera",
+  "savedByViewer": false
+}
+```
+
+## Next Backend Work
+
+1. Replace local SQLite pilot persistence with production database tables when ready.
+2. Add Sign in with Apple identity mapping.
+3. Add public profile endpoint backed by real profile privacy settings.
+4. Add universal link association once the public domain is active.
+5. Add server-side audit logs for report and review decisions.
+6. Add authenticated organizer/admin authorization.
+7. Add mobile endpoints for badge detail and certificate detail.
+8. Add mobile endpoints for Reach Rewards eligibility and claims.

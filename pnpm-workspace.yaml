@@ -1,2 +1,9 @@
 allowBuilds:
-  unrs-resolver: true
+  better-sqlite3: true
+  esbuild: true
+packages:
+  - "."
+
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver

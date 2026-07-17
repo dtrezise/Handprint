@@ -9,7 +9,9 @@ Completed:
 - Native SwiftUI source scaffold.
 - iPhone-first tab structure.
 - Mock data matching the web prototype.
-- Discover, Handprint, Share, Organize, and Review screens.
+- Four primary member destinations: Reach, Print, Wave, and Shake.
+- World Enabler mode nested inside Print and reviewer tools kept outside member navigation.
+- Nearby Shake discovery using motion and local-network peer connectivity.
 - Handprint glyph in SwiftUI Canvas.
 - Local RSVP/check-in/mark progression.
 - XcodeGen project spec.
@@ -45,7 +47,7 @@ Install XcodeGen:
 
 ```bash
 brew install xcodegen
-cd /Users/dan/Documents/GitHub/Handprint/ios/Handprint
+cd ios/Handprint
 xcodegen generate
 open Handprint.xcodeproj
 ```

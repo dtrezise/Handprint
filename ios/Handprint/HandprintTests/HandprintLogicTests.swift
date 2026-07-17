@@ -1,18 +1,19 @@
 import XCTest
+import CoreLocation
 @testable import Handprint
 
 @MainActor
 final class HandprintLogicTests: XCTestCase {
-    func testRecommendationExplainsUsefulMatch() {
+    func testRecommendationExplainsUsefulMatch() throws {
         let store = HandprintStore()
         store.resetLocalState()
 
-        let action = MockHandprintData.actions[0]
+        let action = try XCTUnwrap(MockHandprintData.actions.first { $0.id == "food-shelf-saturday" })
         let recommendation = store.score(action: action)
 
         XCTAssertGreaterThan(recommendation.score, 50)
         XCTAssertTrue(recommendation.reasons.contains("Very near you"))
-        XCTAssertTrue(recommendation.reasons.contains("Anchor organizer"))
+        XCTAssertTrue(recommendation.reasons.contains("Anchor World Enabler"))
     }
 
     func testOnboardingPersistsProfileAndSignsIn() {
@@ -56,7 +57,7 @@ final class HandprintLogicTests: XCTestCase {
 
         XCTAssertEqual(store.actions.count, beforeCount + 1)
         XCTAssertEqual(store.actions.first?.status, .pending)
-        XCTAssertEqual(store.activeTab, .review)
+        XCTAssertEqual(store.activeTab, .enable)
     }
 
     func testSensitiveOrganizerSubmissionEscalates() {
@@ -95,7 +96,16 @@ final class HandprintLogicTests: XCTestCase {
         store.handleDeepLink(URL(string: "handprint://u/dan")!)
 
         XCTAssertEqual(store.openedPublicHandle, "dan")
-        XCTAssertEqual(store.activeTab, .share)
+        XCTAssertEqual(store.activeTab, .wave)
+    }
+
+    func testShakeDeepLinkOpensNearbyConnection() {
+        let store = HandprintStore()
+        store.resetLocalState()
+
+        store.handleDeepLink(URL(string: "handprint://shake")!)
+
+        XCTAssertEqual(store.activeTab, .shake)
     }
 
     func testReportEscalatesActionAndCreatesOpenReport() {
@@ -107,6 +117,28 @@ final class HandprintLogicTests: XCTestCase {
 
         XCTAssertEqual(store.openReports.count, 1)
         XCTAssertEqual(store.actions.first(where: { $0.id == action.id })?.status, .escalated)
-        XCTAssertEqual(store.activeTab, .review)
+        XCTAssertEqual(store.activeTab, .reach)
+    }
+
+    func testNearestCommunityFindsMartinsburg() {
+        let location = CLLocation(latitude: 39.4565, longitude: -77.9642)
+        let nearest = KnownCommunity.nearest(to: location)
+
+        XCTAssertEqual(nearest?.community.label, "Martinsburg, WV")
+        XCTAssertLessThan(nearest?.distanceMiles ?? 999, 1)
+    }
+
+    func testNearestCommunityFindsCupertinoForAppleSimulatorArea() {
+        let location = CLLocation(latitude: 37.3349, longitude: -122.0090)
+        let nearest = KnownCommunity.nearest(to: location)
+
+        XCTAssertEqual(nearest?.community.label, "Cupertino, CA")
+        XCTAssertLessThan(nearest?.distanceMiles ?? 999, 5)
+    }
+
+    func testCommunitySuggestionsUseSharedCatalog() {
+        let suggestions = KnownCommunity.suggestions(matching: "mart")
+
+        XCTAssertEqual(suggestions.first?.label, "Martinsburg, WV")
     }
 }

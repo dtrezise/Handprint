@@ -80,7 +80,7 @@ export function HandprintVisual({ marks, activeEventId }: { marks: HandprintMark
           <div key={mark.id} className="flex items-center justify-between rounded-md border border-ink/10 bg-white px-3 py-2">
             <div className="min-w-0">
               <span className="block truncate text-sm font-medium">{mark.label}</span>
-              <span className="text-xs text-ink/55">{mark.source}</span>
+              <span className="text-xs text-ink/55">{mark.source === "Organizer confirmed" ? "World Enabler confirmed" : mark.source}</span>
             </div>
             <span className="shrink-0 text-xs text-ink/60">{mark.category}</span>
           </div>

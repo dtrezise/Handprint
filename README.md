@@ -8,11 +8,7 @@ The working thesis:
 
 ## Current Project State
 
-This repository starts from three foundation PDFs:
-
-- `/Users/dan/Downloads/Handprint - Handprint app evaluation.pdf`
-- `/Users/dan/Downloads/Your Handprint.pdf`
-- `/Users/dan/Desktop/Dans Projects/Handprint/Handprint Project Foundation V0.pdf`
+The product direction began with private foundation research and evaluation documents. Those source materials are intentionally not included in the project.
 
 The first implementation pass creates:
 

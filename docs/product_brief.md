@@ -2,7 +2,7 @@
 
 ## One-Sentence Description
 
-Handprint helps people discover useful civic and community action within reach, participate with verified organizers, and grow a personal visual identity from real-world contribution.
+Handprint helps people discover useful civic and community action within reach, participate with verified World Enablers, and grow a personal visual identity from real-world contribution.
 
 ## Core Thesis
 
@@ -26,7 +26,7 @@ Early adopter traits:
 - May be civic-minded without being politically obsessive.
 - Wants agency without doom.
 
-## Primary Organizer
+## Primary World Enabler
 
 A trusted local individual or organization that needs participants for useful community action.
 
@@ -44,9 +44,15 @@ Examples:
 
 "Here are meaningful things within reach, and here is the visible mark your participation leaves."
 
+For World Enablers:
+
+"Here are people ready to help, and here is a verified record of what your organization mobilized, delivered, and stewarded."
+
 ## Differentiation
 
 Most platforms reward posting, attention, or ideological performance. Handprint rewards verified participation.
+
+Most ad platforms sell attention. Handprint should sell carefully governed reach into real action, transparent fundraising, and sponsor-backed capacity without selling trust.
 
 ## First Launch Positioning
 

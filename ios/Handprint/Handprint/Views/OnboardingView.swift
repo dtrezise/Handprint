@@ -1,10 +1,12 @@
-import AuthenticationServices
 import SwiftUI
+import UIKit
 
 struct OnboardingView: View {
     @EnvironmentObject private var store: HandprintStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var profile = MockHandprintData.profile
     @State private var step = 0
+    @State private var accountStatus = "Account ready"
 
     var body: some View {
         NavigationStack {
@@ -23,7 +25,7 @@ struct OnboardingView: View {
                 HStack(spacing: 12) {
                     if step > 0 {
                         Button {
-                            withAnimation { step -= 1 }
+                            if reduceMotion { step -= 1 } else { withAnimation { step -= 1 } }
                         } label: {
                             Label("Back", systemImage: "chevron.left")
                                 .frame(maxWidth: .infinity)
@@ -33,7 +35,7 @@ struct OnboardingView: View {
 
                     Button {
                         if step < 2 {
-                            withAnimation { step += 1 }
+                            if reduceMotion { step += 1 } else { withAnimation { step += 1 } }
                         } else {
                             store.completeOnboarding(profile: profile)
                         }
@@ -42,43 +44,44 @@ struct OnboardingView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(HandprintTheme.ink)
+                    .tint(HandprintTheme.moss)
                     .accessibilityIdentifier("onboarding-primary-button")
                 }
                 .padding(18)
             }
-            .background(HandprintTheme.paper.ignoresSafeArea())
+            .handprintScreenBackground()
             .navigationTitle("Handprint")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .handprintKeyboardControls()
     }
 
     private var identityStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(eyebrow: "Set up", title: "Make this yours", systemImage: "person.crop.circle")
+                SectionHeader(eyebrow: "Set up", title: "Begin within reach", systemImage: "person.crop.circle")
 
                 VStack(alignment: .leading, spacing: 12) {
-                    TextField("Name", text: $profile.name)
+                    DarkField(placeholder: "Name", text: $profile.name)
                         .textContentType(.name)
-                    TextField("Handle", text: $profile.handle)
+                    DarkField(placeholder: "Handle", text: $profile.handle)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    TextField("Launch community", text: $profile.launchCommunity)
-                    Stepper("Reach: \(Int(profile.radiusMiles)) miles", value: $profile.radiusMiles, in: 1...25, step: 1)
+                    DarkField(placeholder: "Location", text: $profile.launchCommunity)
+                    Stepper("Reach: \(Int(profile.radiusMiles)) miles", value: $profile.radiusMiles, in: 1...150, step: 5)
                 }
-                .textFieldStyle(.roundedBorder)
                 .handprintCard()
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Location")
                         .font(.headline)
-                    Text("Handprint only needs an approximate area for matching. Precise location history is not part of the pilot.")
+                    Text("Handprint only needs an approximate area for matching. Precise location history is not stored.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HandprintTheme.muted)
                     HStack {
                         Button {
                             store.requestApproximateLocation()
+                            profile.launchCommunity = store.profile.launchCommunity
                         } label: {
                             Label("Use approximate area", systemImage: "location")
                         }
@@ -102,7 +105,7 @@ struct OnboardingView: View {
     private var matchingStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(eyebrow: "Match", title: "What feels useful?", systemImage: "sparkles")
+                SectionHeader(eyebrow: "Match", title: "Where can you lend a hand?", systemImage: "sparkles")
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Interests")
@@ -117,7 +120,13 @@ struct OnboardingView: View {
                     Text("Skills")
                         .font(.headline)
                     TextField("Skills, comma separated", text: skillsText)
-                        .textFieldStyle(.roundedBorder)
+                        .submitLabel(.done)
+                        .onSubmit {
+                            UIApplication.shared.dismissHandprintKeyboard()
+                        }
+                        .padding(12)
+                        .background(HandprintTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .handprintKeyboardDismissButton()
                     Picker("Engagement", selection: $profile.engagementLevel) {
                         ForEach(EngagementLevel.allCases) { level in
                             Text(level.rawValue).tag(level)
@@ -128,35 +137,43 @@ struct OnboardingView: View {
             }
             .padding(18)
         }
+        .onChange(of: store.profile.launchCommunity) { _, newValue in
+            if !newValue.isEmpty {
+                profile.launchCommunity = newValue
+            }
+        }
     }
 
     private var trustStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(eyebrow: "Ready", title: "Find something real", systemImage: "checkmark.shield")
+                SectionHeader(eyebrow: "Ready", title: "Make your first mark", systemImage: "checkmark.shield")
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Verified organizers come first", systemImage: "checkmark.seal")
+                    Label("Verified World Enablers come first", systemImage: "checkmark.seal")
                     Label("Every match explains why it appears", systemImage: "list.bullet.rectangle")
                     Label("Your public Handprint shows verified participation, not popularity", systemImage: "hand.raised")
+                    Label("Wave your Handprint outward and build your network through Shake", systemImage: "hand.wave")
                     Label("Sign in with Apple will protect accounts without social graph imports", systemImage: "apple.logo")
                 }
                 .font(.subheadline.weight(.semibold))
                 .handprintCard()
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Account shell")
+                    Text("Account")
                         .font(.headline)
-                    SignInWithAppleButton(.continue) { _ in
-                    } onCompletion: { _ in
+                    Button {
                         store.authState = .signedIn
+                        accountStatus = "Signed in"
+                    } label: {
+                        Label("Continue", systemImage: "person.crop.circle.badge.checkmark")
+                            .frame(maxWidth: .infinity)
                     }
-                    .signInWithAppleButtonStyle(.black)
-                    .frame(height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    Text("Apple account entitlements are not enabled yet. This is the production account path shell.")
+                    .buttonStyle(.borderedProminent)
+                    .tint(HandprintTheme.moss)
+                    Text(accountStatus)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HandprintTheme.muted)
                 }
                 .handprintCard()
 
@@ -168,7 +185,7 @@ struct OnboardingView: View {
                         .textSelection(.enabled)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(HandprintTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .handprintCard()
             }

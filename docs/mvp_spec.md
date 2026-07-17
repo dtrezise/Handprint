@@ -10,9 +10,9 @@ Prove that users will discover local action, commit to participating, and value 
 
 ## Target Launch Context
 
-Default pilot: one dense campus/city community with 10-20 trusted organizers and 50-100 seeded actions over the first month.
+Default pilot: one dense campus/city community with 10-20 trusted World Enablers and 50-100 seeded actions over the first month.
 
-This context is recommended because it reduces cold start risk, supports manual organizer verification, and creates enough local activity to make the first session feel alive.
+This context is recommended because it reduces cold start risk, supports manual World Enabler verification, and creates enough local activity to make the first session feel alive.
 
 ## Core User Loop
 
@@ -20,7 +20,7 @@ This context is recommended because it reduces cold start risk, supports manual 
 2. User sees a short list of useful local actions.
 3. User opens an event and understands why it matches.
 4. User RSVPs.
-5. User checks in or receives organizer confirmation.
+5. User checks in or receives World Enabler confirmation.
 6. User's handprint gains a new line or mark.
 7. User shares or returns to find the next action.
 
@@ -34,7 +34,7 @@ This context is recommended because it reduces cold start risk, supports manual 
 - Interest categories
 - Skills
 - Availability
-- Engagement level: observer, participant, helper, organizer
+- Engagement level: observer, participant, helper, World Enabler
 
 ### Event Discovery
 
@@ -42,7 +42,7 @@ This context is recommended because it reduces cold start risk, supports manual 
 - Match reasons
 - Date/time
 - Distance or local area
-- Organizer verification state
+- World Enabler verification state
 - Category and skill tags
 - RSVP action
 
@@ -51,18 +51,23 @@ This context is recommended because it reduces cold start risk, supports manual 
 - Purpose
 - What to expect
 - Location
-- Organizer
+- World Enabler
 - Trust indicators
 - Match explanation
 - RSVP and share action
 
-### Organizer Layer
+### World Enabler Layer
 
-- Organizer profile
+- World Enabler profile
+- World Enabler Handprint preview
 - Event creation fields
 - Event status: draft, pending review, approved, rejected
 - Attendee count
 - Basic post-event confirmation
+- Mobilization metrics
+- Impact receipts
+- Grant-ready proof summary
+- Sponsored/fundraising disclosure fields
 
 ### Handprint Visualization
 
@@ -74,7 +79,7 @@ This context is recommended because it reduces cold start risk, supports manual 
 
 ### Admin/Trust
 
-- Organizer review
+- World Enabler review
 - Event approval
 - Report event
 - Hide or remove event
@@ -86,6 +91,8 @@ This context is recommended because it reduces cold start risk, supports manual 
 - Open algorithmic social feed
 - Payments
 - Ticketing
+- Self-serve ad buying
+- Grant-report export automation
 - Public reputation scores
 - Political ad tools
 - Demographic targeting
@@ -97,7 +104,7 @@ This context is recommended because it reduces cold start risk, supports manual 
 - Match-to-RSVP rate
 - RSVP-to-check-in rate
 - Weekly repeat participation
-- Organizer repeat posting
+- World Enabler repeat posting
 - Number of verified events per week
 - User comprehension of why the handprint changed
 
@@ -106,13 +113,13 @@ This context is recommended because it reduces cold start risk, supports manual 
 Continue if:
 
 - At least 30 percent of active users RSVP to one event.
-- At least 50 percent of RSVPs convert to attendance or organizer confirmation.
-- At least 10 organizers create repeat events.
+- At least 50 percent of RSVPs convert to attendance or World Enabler confirmation.
+- At least 10 World Enablers create repeat events.
 - Users describe the handprint as motivating, not gimmicky.
 
 Pause and revise if:
 
 - Most users browse without action.
-- Organizers do not return.
+- World Enablers do not return.
 - Trust review becomes overloaded.
 - Users cannot distinguish Handprint from an event listing app.

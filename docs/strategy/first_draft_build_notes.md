@@ -19,7 +19,7 @@ The product question this version should answer:
 - Check in after joining.
 - See handprint marks update.
 
-### Organizer Loop
+### World Enabler Loop
 
 - Submit a local action.
 - New submissions enter pending review.
@@ -52,7 +52,7 @@ Ranking is intentionally explainable. The score uses radius, interest match, ski
 
 ### Community Operations Lead
 
-The data assumes a Northside pilot with anchor organizers and seeded events. This supports a concierge pilot before marketplace scale.
+The data assumes a Northside pilot with anchor World Enablers and seeded events. This supports a concierge pilot before marketplace scale.
 
 ### Full-Stack/Mobile Engineer
 
@@ -60,7 +60,7 @@ The state model is currently client-side with local storage persistence. It is s
 
 ### Data & Impact Systems Agent
 
-Handprint marks distinguish RSVP, check-in, and organizer-confirmed participation. The product should continue to weight verified action above intent.
+Handprint marks distinguish RSVP, check-in, and World Enabler-confirmed participation. The product should continue to weight verified action above intent.
 
 ### Legal/Policy Risk Advisor
 
@@ -71,7 +71,7 @@ Candidate/campaign activity, youth events, medical claims, donations, payments, 
 1. Split the single-page prototype into route-level surfaces.
 2. Add Supabase schema and seed data.
 3. Add real auth and role-based access.
-4. Create organizer/admin persistence.
+4. Create World Enabler/admin persistence.
 5. Add event detail URLs and share cards.
 6. Add a richer handprint progression model.
 7. Add a small smoke-test suite for the core workflow.

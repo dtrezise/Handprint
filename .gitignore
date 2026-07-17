@@ -1,6 +1,7 @@
 node_modules
 .next
 out
+pages-dist
 dist
 .env
 .env.local
@@ -9,3 +10,7 @@ coverage
 tsconfig.tsbuildinfo
 *.xcuserstate
 xcuserdata/
+data/*.sqlite
+data/*.sqlite-*
+data/organizer-profiles.json
+data/reward-ledger.json

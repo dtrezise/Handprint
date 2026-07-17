@@ -36,6 +36,34 @@ The current repository includes a local prototype using in-memory mock data. The
 - `website`
 - `created_at`
 
+### OrganizerImpactProfile
+
+- `id`
+- `organizer_id`
+- `public_summary`
+- `events_hosted`
+- `attendees_mobilized`
+- `confirmed_participants`
+- `volunteer_hours`
+- `handprint_points_issued`
+- `impact_highlights`
+- `impact_receipt_ids`
+- `sponsor_slots_used`
+- `sponsor_slots_limit`
+- `grant_ready_summary`
+- `created_at`
+
+### OrganizerAccolade
+
+- `id`
+- `organizer_id`
+- `category`
+- `title`
+- `description`
+- `evidence`
+- `issued_at`
+- `visibility`
+
 ### Event
 
 - `id`
@@ -52,7 +80,26 @@ The current repository includes a local prototype using in-memory mock data. The
 - `longitude`
 - `status`
 - `review_notes`
+- `beneficiary`
+- `impact_claim`
+- `verification_plan`
+- `sponsor_disclosure`
+- `fundraising_goal`
+- `impact_receipt_plan`
 - `created_at`
+
+### ImpactReceipt
+
+- `id`
+- `organizer_id`
+- `event_id`
+- `title`
+- `beneficiary`
+- `accomplishment`
+- `confirmed_by`
+- `issued_at`
+- `evidence`
+- `next_invite_event_id`
 
 ### Recommendation
 

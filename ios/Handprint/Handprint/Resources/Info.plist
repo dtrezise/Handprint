@@ -35,6 +35,13 @@
 	<string></string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Handprint uses your approximate area to find useful local actions within reach. The pilot does not store precise location history.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Handprint uses the local network while Shake is open so nearby World Changers can exchange public Handprint identities.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_handprint-shake._tcp</string>
+		<string>_handprint-shake._udp</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -15,7 +15,7 @@ Default recommendation: campus/city hybrid pilot because it can produce recurrin
 
 ## Pre-Launch Targets
 
-- 10-20 verified organizers.
+- 10-20 verified World Enablers.
 - 50-100 seeded events or actions.
 - 5-10 event categories.
 - One named pilot geography.
@@ -35,13 +35,13 @@ Default recommendation: campus/city hybrid pilot because it can produce recurrin
 9. Neighborhood safety and preparedness
 10. Arts and cultural community building
 
-## Organizer Verification Rules
+## World Enabler Verification Rules
 
 - Verify identity or affiliation before publishing events.
 - Require clear event purpose, location, time, and expectations.
-- Require organizer contact information.
+- Require World Enabler contact information.
 - Require terms acceptance.
-- Manually review first three events from every organizer.
+- Manually review first three events from every World Enabler.
 - Escalate political, fundraising, youth, medical, or high-risk events.
 
 ## First 30 Days
@@ -49,7 +49,7 @@ Default recommendation: campus/city hybrid pilot because it can produce recurrin
 Week 1:
 
 - Confirm pilot geography.
-- Recruit anchor organizers.
+- Recruit anchor World Enablers.
 - Seed event catalog.
 - Run internal prototype testing.
 
@@ -62,7 +62,7 @@ Week 2:
 
 Week 3:
 
-- Add organizer feedback loop.
+- Add World Enabler feedback loop.
 - Improve handprint marks.
 - Expand event supply.
 - Start referral/share tests.

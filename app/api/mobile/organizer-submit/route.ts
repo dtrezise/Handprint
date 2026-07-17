@@ -13,6 +13,7 @@ type OrganizerSubmissionRequest = {
   duration?: string;
   capacity?: number;
   category?: string;
+  listingType?: string;
   summary?: string;
   skills?: string[];
   safetyNote?: string;

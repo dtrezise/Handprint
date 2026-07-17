@@ -9,6 +9,7 @@ struct HandprintApp: App {
         if ProcessInfo.processInfo.arguments.contains("-ui-testing-reset") {
             initialStore.resetLocalState()
         }
+        initialStore.configureForUITesting(arguments: ProcessInfo.processInfo.arguments)
         _store = StateObject(wrappedValue: initialStore)
     }
 

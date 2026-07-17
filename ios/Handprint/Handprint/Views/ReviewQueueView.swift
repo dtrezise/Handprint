@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReviewQueueView: View {
     @EnvironmentObject private var store: HandprintStore
+    @State private var reviewStatus = "Select a review action to update the queue."
 
     var body: some View {
         NavigationStack {
@@ -12,14 +13,18 @@ struct ReviewQueueView: View {
                             .font(.title2.bold())
                         Text("actions need human review before broad listing.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HandprintTheme.muted)
                     }
 
                     if !store.openReports.isEmpty {
                         Label("\(store.openReports.count) open reports", systemImage: "exclamationmark.shield")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(HandprintTheme.coral)
+                            .foregroundStyle(HandprintTheme.coralBright)
                     }
+
+                    Label(reviewStatus, systemImage: "checkmark.circle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(HandprintTheme.muted)
                 }
 
                 if !store.openReports.isEmpty {
@@ -33,7 +38,7 @@ struct ReviewQueueView: View {
                                 if !report.note.isEmpty {
                                     Text(report.note)
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(HandprintTheme.muted)
                                 }
                             }
                             .padding(.vertical, 6)
@@ -49,23 +54,36 @@ struct ReviewQueueView: View {
                                     .font(.headline)
                                 Text("\(action.organizer) - \(action.neighborhood)")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(HandprintTheme.muted)
                             }
                             Spacer()
-                            StatusPill(action: action)
+                            VStack(alignment: .trailing, spacing: 6) {
+                                StatusPill(action: action)
+                                ListingPill(action: action)
+                            }
                         }
 
                         Text(action.reviewNote)
                             .font(.subheadline)
-                            .foregroundStyle(.black.opacity(0.72))
+                            .foregroundStyle(HandprintTheme.muted)
 
                         Text(action.safetyNote)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HandprintTheme.muted)
+
+                        if action.listingTypeValue == .sponsored || action.listingTypeValue == .awareness {
+                            Label(
+                                action.listingTypeValue == .sponsored ? "Sponsored visibility does not buy trust, rewards, or accolades." : "Awareness listings need an action bridge before rewards.",
+                                systemImage: "list.clipboard"
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(HandprintTheme.tideBright)
+                        }
 
                         HStack {
                             Button {
                                 store.escalate(action)
+                                reviewStatus = "Escalated \(action.title)."
                             } label: {
                                 Label("Escalate", systemImage: "exclamationmark.shield")
                             }
@@ -74,6 +92,7 @@ struct ReviewQueueView: View {
 
                             Button {
                                 store.reject(action)
+                                reviewStatus = "Rejected \(action.title)."
                             } label: {
                                 Label("Reject", systemImage: "xmark")
                             }
@@ -82,6 +101,7 @@ struct ReviewQueueView: View {
 
                             Button {
                                 store.approve(action)
+                                reviewStatus = "Approved \(action.title)."
                             } label: {
                                 Label("Approve", systemImage: "checkmark")
                             }
@@ -93,8 +113,11 @@ struct ReviewQueueView: View {
                     .padding(.vertical, 8)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(HandprintTheme.background)
             .navigationTitle("Review")
         }
+        .handprintKeyboardControls()
     }
 
     private var sortedActions: [LocalAction] {

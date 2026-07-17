@@ -2,14 +2,23 @@ import CoreLocation
 import Foundation
 
 @MainActor
-final class HandprintStore: ObservableObject {
+final class HandprintStore: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var profile = MockHandprintData.profile
     @Published var actions = MockHandprintData.actions
     @Published var marks = MockHandprintData.marks
+    @Published var organizerProfiles = MockHandprintData.organizerProfiles
+    @Published var impactReceipts = MockHandprintData.impactReceipts
+    @Published var followedWorldChangers = MockHandprintData.followedWorldChangers
+    @Published var reachRewards = MockHandprintData.reachRewards
+    @Published var trainingCredentials = MockHandprintData.trainingCredentials
+    @Published var organizationLoadState: RemoteCollectionState = .ready
+    @Published var receiptLoadState: RemoteCollectionState = .ready
+    @Published var socialLoadState: RemoteCollectionState = .ready
+    @Published var socialStatus = "Wave is ready"
     @Published var rsvps: [String: RsvpStatus] = ["tenant-rights-clinic": .checkedIn]
     @Published var reports: [EventReport] = []
     @Published var selectedActionId = MockHandprintData.actions.first?.id ?? ""
-    @Published var activeTab: AppTab = .discover
+    @Published var activeTab: AppTab = .reach
     @Published var isOnboarded = false
     @Published var authState: AuthState = .appleReady
     @Published var locationPermission: LocationPermissionState = .notRequested
@@ -17,22 +26,30 @@ final class HandprintStore: ObservableObject {
     @Published var loadedPublicProfile: PublicHandprintPayload?
     @Published var lastReportConfirmation: ReportConfirmation?
     @Published private(set) var backendConfiguration = BackendConfiguration.localMock
-    @Published private(set) var syncStatus = "Using local pilot data"
+    @Published private(set) var syncStatus = "Handprint is ready"
 
     private let persistenceKey = "handprint.ios.localState.v1"
     private let apiClient: HandprintAPIClient
     private let locationManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
 
-    init() {
+    override init() {
         let configuration = BackendConfiguration.fromBundle()
         backendConfiguration = configuration
         apiClient = HandprintAPIClient(configuration: configuration)
-        syncStatus = configuration.usesMockData ? "Using local pilot data" : "Ready to sync"
+        super.init()
+        locationManager.delegate = self
+        syncStatus = configuration.usesMockData ? "Handprint is ready" : "Ready to sync"
         restore()
     }
 
     var shareURL: URL {
-        URL(string: "https://handprint.local/u/\(profile.handle)")!
+        publicURL(path: "u/\(profile.handle)")
+    }
+
+    func publicURL(path: String) -> URL {
+        let baseURL = backendConfiguration.baseURL ?? URL(string: "http://127.0.0.1:3000")!
+        return baseURL.appending(path: path)
     }
 
     var selectedAction: LocalAction {
@@ -64,8 +81,50 @@ final class HandprintStore: ObservableObject {
         actions.filter { $0.status == .pending || $0.status == .escalated }
     }
 
+    func organizer(for action: LocalAction) -> OrganizerImpactProfile? {
+        let actionOrganizer = action.organizer.lowercased()
+        return organizerProfiles.first { organizer in
+            let name = organizer.name.lowercased()
+            return name == actionOrganizer || name.contains(actionOrganizer) || actionOrganizer.contains(name)
+        }
+    }
+
+    func receipts(for organizer: OrganizerImpactProfile) -> [ImpactReceipt] {
+        impactReceipts.filter { organizer.impactReceiptIds.contains($0.id) }
+    }
+
     var openReports: [EventReport] {
         reports.filter { $0.status == "open" }
+    }
+
+    var followedOrganizations: [OrganizerImpactProfile] {
+        organizerProfiles.filter { $0.savedByViewer == true }
+    }
+
+    var savedWorldChangers: [FollowedWorldChanger] {
+        followedWorldChangers.filter(\.savedByViewer)
+    }
+
+    var rewardsEnabled: Bool {
+        profile.rewardsEnabled ?? true
+    }
+
+    var worldChangerPoints: Int {
+        marks.reduce(0) { total, mark in
+            if mark.source == "Organizer confirmed" { return total + 125 }
+            if mark.source == "Check-in" { return total + 70 }
+            return total + 20
+        }
+    }
+
+    var worldChangerTier: String {
+        switch worldChangerPoints {
+        case 900...: "Anchor"
+        case 520...: "Builder"
+        case 260...: "Helper"
+        case 120...: "Neighbor"
+        default: "Starter"
+        }
     }
 
     func completeOnboarding(profile updatedProfile: UserProfile) {
@@ -77,8 +136,26 @@ final class HandprintStore: ObservableObject {
 
     func requestApproximateLocation() {
         locationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
-        locationManager.requestWhenInUseAuthorization()
         locationPermission = .approximateAllowed
+        if let currentLocation = locationManager.location {
+            Task {
+                await updateApproximateCommunity(from: currentLocation)
+            }
+        }
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            locationManager.requestLocation()
+            syncStatus = "Locating approximate area..."
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+            syncStatus = "Requesting location permission..."
+        case .denied, .restricted:
+            locationPermission = .denied
+            syncStatus = "Location permission denied. Using saved default area."
+        @unknown default:
+            locationManager.requestWhenInUseAuthorization()
+            syncStatus = "Requesting location permission..."
+        }
         persist()
     }
 
@@ -87,18 +164,136 @@ final class HandprintStore: ObservableObject {
         persist()
     }
 
+    func updateProfileSettings(location: String? = nil, radiusMiles: Double? = nil, rewardsEnabled: Bool? = nil) {
+        if let location {
+            profile.launchCommunity = location
+        }
+        if let radiusMiles {
+            profile.radiusMiles = radiusMiles
+        }
+        if let rewardsEnabled {
+            profile.rewardsEnabled = rewardsEnabled
+        }
+        persist()
+        let nextProfile = profile
+        Task {
+            do {
+                try await apiClient.updateProfileSettings(profile: nextProfile)
+                await MainActor.run { syncStatus = "Profile settings synced" }
+            } catch {
+                await MainActor.run { syncStatus = "Profile settings saved locally" }
+            }
+        }
+    }
+
+    func updateProfileIdentity(name: String, handle: String) {
+        let cleanedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedHandle = handle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "@", with: "")
+            .replacingOccurrences(of: " ", with: "-")
+            .lowercased()
+        profile.name = cleanedName.isEmpty ? profile.name : cleanedName
+        profile.handle = cleanedHandle.isEmpty ? profile.handle : cleanedHandle
+        persistProfileChange()
+    }
+
+    func toggleInterest(_ category: EventCategory) {
+        if profile.interests.contains(category) {
+            profile.interests.remove(category)
+        } else {
+            profile.interests.insert(category)
+        }
+        persistProfileChange()
+    }
+
+    func clearInterests() {
+        profile.interests.removeAll()
+        persistProfileChange()
+    }
+
+    func toggleSkill(_ skill: String) {
+        if profile.skills.contains(skill) {
+            profile.skills.remove(skill)
+        } else {
+            profile.skills.insert(skill)
+        }
+        persistProfileChange()
+    }
+
+    func clearSkills() {
+        profile.skills.removeAll()
+        persistProfileChange()
+    }
+
+    func toggleAvailability(_ availability: String) {
+        if profile.availability.contains(availability) {
+            profile.availability.remove(availability)
+        } else {
+            profile.availability.insert(availability)
+        }
+        persistProfileChange()
+    }
+
+    func updateCredential(_ credential: TrainingCredential, uploadState: String, status: String, confidence: String? = nil) {
+        guard let index = trainingCredentials.firstIndex(where: { $0.id == credential.id }) else { return }
+        trainingCredentials[index].uploadState = uploadState
+        trainingCredentials[index].status = status
+        if let confidence {
+            trainingCredentials[index].confidence = confidence
+        }
+        syncStatus = "\(credential.title) credential updated"
+        persist()
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        Task { @MainActor in
+            await updateApproximateCommunity(from: location)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            locationPermission = .denied
+            syncStatus = "Location unavailable. Using saved default area."
+            persist()
+        }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            switch status {
+            case .authorizedAlways, .authorizedWhenInUse:
+                locationPermission = .approximateAllowed
+                locationManager.requestLocation()
+            case .denied, .restricted:
+                locationPermission = .denied
+                syncStatus = "Location permission denied. Using saved default area."
+                persist()
+            default:
+                break
+            }
+        }
+    }
+
     func handleDeepLink(_ url: URL) {
+        if url.scheme == "handprint", url.host == "shake" {
+            activeTab = .shake
+            return
+        }
         let components = url.pathComponents.filter { $0 != "/" }
         if url.scheme == "handprint", url.host == "u", let handle = components.first {
             openedPublicHandle = handle
-            activeTab = handle == profile.handle ? .share : .handprint
+            activeTab = handle == profile.handle ? .wave : .print
             loadPublicProfile(handle: handle)
             return
         }
 
         if components.first == "u", let handle = components.dropFirst().first {
             openedPublicHandle = handle
-            activeTab = handle == profile.handle ? .share : .handprint
+            activeTab = handle == profile.handle ? .wave : .print
             loadPublicProfile(handle: handle)
         }
     }
@@ -108,8 +303,8 @@ final class HandprintStore: ObservableObject {
         var reasons: [String] = []
 
         if action.distanceMiles <= profile.radiusMiles {
-            score += max(0, 24 - action.distanceMiles * 3)
-            reasons.append(action.distanceMiles <= 1.5 ? "Very near you" : "Within your radius")
+            score += max(0, 30 - action.distanceMiles / 3)
+            reasons.append(action.distanceMiles <= 3 ? "Very near you" : "Within your reach")
         }
 
         if profile.interests.contains(action.category) {
@@ -131,10 +326,10 @@ final class HandprintStore: ObservableObject {
         switch action.trustTier {
         case .anchorPartner:
             score += 18
-            reasons.append("Anchor organizer")
+            reasons.append("Anchor World Enabler")
         case .verified:
             score += 12
-            reasons.append("Verified organizer")
+            reasons.append("Verified World Enabler")
         case .pendingReview:
             score -= 18
             reasons.append("Needs trust review")
@@ -199,9 +394,22 @@ final class HandprintStore: ObservableObject {
             actionTitle: action.title,
             message: "Thanks. This went to the trust queue and the action was escalated for review."
         )
-        activeTab = .review
         persist()
         postReport(report)
+    }
+
+    func reviewSocialText(_ text: String, surface: String) async throws -> AffirmationReview {
+        try await apiClient.reviewSocialText(text, surface: surface)
+    }
+
+    func saveShareDraft(platformId: String, message: String) async throws {
+        try await apiClient.saveShareDraft(platformId: platformId, message: message)
+        socialStatus = "Draft saved"
+    }
+
+    func postSocialComment(targetType: String, targetId: String, text: String) async throws {
+        try await apiClient.postSocialComment(targetType: targetType, targetId: targetId, text: text)
+        socialStatus = "Comment queued"
     }
 
     func submit(_ draft: OrganizerDraft) {
@@ -236,13 +444,71 @@ final class HandprintStore: ObservableObject {
             capacity: draft.capacity,
             attending: 0,
             safetyNote: draft.safetyNote.isEmpty ? "Needs pilot safety review." : draft.safetyNote,
-            reviewNote: needsEscalation ? "Sensitive terms detected. Review before listing." : "New organizer submission from \(draft.contactEmail). Affiliation: \(draft.communityAffiliation)."
+            reviewNote: needsEscalation ? "Sensitive terms detected. Review before listing." : "New organizer submission from \(draft.contactEmail). Affiliation: \(draft.communityAffiliation).",
+            listingType: draft.listingType,
+            rewardEligible: draft.listingType != .awareness && draft.listingType != .sponsored,
+            handprintPoints: draft.listingType == .awareness || draft.listingType == .sponsored ? 0 : 80,
+            actionBridge: draft.listingType == .awareness ? "Add a cleanup, signup table, service clinic, or other hands-on action to make this reward eligible." : nil
         )
         actions.insert(newAction, at: 0)
         selectedActionId = newAction.id
-        activeTab = .review
+        activeTab = .enable
         persist()
         postOrganizerSubmission(draft, createdAction: newAction)
+    }
+
+    func toggleFollow(_ organizer: OrganizerImpactProfile) {
+        guard let index = organizerProfiles.firstIndex(where: { $0.id == organizer.id }) else { return }
+        let nextValue = !(organizerProfiles[index].savedByViewer ?? false)
+        organizerProfiles[index].savedByViewer = nextValue
+        persist()
+        Task {
+            do {
+                try await apiClient.setOrganizationFollow(organizerId: organizer.id, saved: nextValue)
+            } catch {
+                await MainActor.run { syncStatus = "Follow saved locally" }
+            }
+        }
+    }
+
+    func saveShakeConnection(handle: String, name: String) {
+        let normalizedHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedHandle.isEmpty, normalizedHandle != profile.handle else { return }
+
+        if let index = followedWorldChangers.firstIndex(where: { $0.handle == normalizedHandle }) {
+            followedWorldChangers[index].savedByViewer = true
+            followedWorldChangers[index].name = name
+        } else {
+            followedWorldChangers.insert(
+                FollowedWorldChanger(
+                    handle: normalizedHandle,
+                    name: name,
+                    tier: "World Changer",
+                    focus: "Connected in person through Shake",
+                    recruiting: [],
+                    following: [],
+                    points: 0,
+                    savedByViewer: true
+                ),
+                at: 0
+            )
+        }
+        syncStatus = "Shake saved to your network"
+        persist()
+    }
+
+    func toggleFollow(_ worldChanger: FollowedWorldChanger) {
+        guard let index = followedWorldChangers.firstIndex(where: { $0.handle == worldChanger.handle }) else { return }
+        followedWorldChangers[index].savedByViewer.toggle()
+        let nextProfile = followedWorldChangers[index]
+        persist()
+        Task {
+            do {
+                try await apiClient.setWorldChangerFollow(worldChanger: nextProfile)
+            } catch {
+                await MainActor.run { syncStatus = "Shake connection saved locally" }
+            }
+        }
     }
 
     func resetLocalState() {
@@ -251,8 +517,13 @@ final class HandprintStore: ObservableObject {
         marks = MockHandprintData.marks
         rsvps = ["tenant-rights-clinic": .checkedIn]
         reports = []
+        organizerProfiles = MockHandprintData.organizerProfiles
+        impactReceipts = MockHandprintData.impactReceipts
+        followedWorldChangers = MockHandprintData.followedWorldChangers
+        reachRewards = MockHandprintData.reachRewards
+        trainingCredentials = MockHandprintData.trainingCredentials
         selectedActionId = MockHandprintData.actions.first?.id ?? ""
-        activeTab = .discover
+        activeTab = .reach
         isOnboarded = false
         authState = .appleReady
         locationPermission = .notRequested
@@ -262,8 +533,55 @@ final class HandprintStore: ObservableObject {
         persist()
     }
 
+    func configureForUITesting(arguments: [String]) {
+        guard arguments.contains(where: { $0.hasPrefix("-ui-testing-") }) else { return }
+
+        if arguments.contains("-ui-testing-long-content") {
+            profile.name = "Alexandria Montgomery-Washington the Community Connector"
+            if !actions.isEmpty {
+                actions[0].title = "Intergenerational neighborhood resilience, food access, and community resource distribution day"
+                actions[0].summary = "Coordinate an unusually detailed, multi-part community action with volunteers, partner teams, and neighbors across the region."
+                selectedActionId = actions[0].id
+            }
+        }
+
+        if arguments.contains("-ui-testing-empty-account") {
+            marks = []
+            rsvps = [:]
+            followedWorldChangers = []
+            organizerProfiles = organizerProfiles.map { profile in
+                var updated = profile
+                updated.savedByViewer = false
+                return updated
+            }
+        }
+
+        if arguments.contains("-ui-testing-large-results"), !actions.isEmpty {
+            let seedActions = actions
+            actions = (0..<120).map { index in
+                var action = seedActions[index % seedActions.count]
+                action.id = "load-test-\(index)"
+                action.title = "\(action.title) \(index + 1)"
+                action.distanceMiles = Double((index % 100) + 1)
+                return action
+            }
+            selectedActionId = actions[0].id
+        }
+
+        if arguments.contains("-ui-testing-skip-onboarding") {
+            isOnboarded = true
+            authState = .signedIn
+        }
+
+        if arguments.contains("-ui-testing-tab-wave") {
+            activeTab = .wave
+        }
+    }
+
     @MainActor
     func refreshFromBackend() async {
+        organizationLoadState = .loading
+        receiptLoadState = .loading
         do {
             let payload = try await apiClient.fetchPilotData()
             profile = payload.profile
@@ -275,11 +593,42 @@ final class HandprintStore: ObservableObject {
             isOnboarded = payload.isOnboarded
             authState = payload.authState
             locationPermission = payload.locationPermission
-            syncStatus = backendConfiguration.usesMockData ? "Using local pilot data" : "Synced"
+            syncStatus = backendConfiguration.usesMockData ? "Handprint is ready" : "Synced"
             persist()
         } catch {
             syncStatus = "Sync unavailable"
         }
+
+        do {
+            organizerProfiles = try await apiClient.fetchOrganizations()
+            organizationLoadState = organizerProfiles.isEmpty ? .empty : .ready
+        } catch {
+            organizationLoadState = .error
+            syncStatus = "World Enablers unavailable"
+        }
+
+        do {
+            impactReceipts = try await apiClient.fetchImpactReceipts()
+            receiptLoadState = impactReceipts.isEmpty ? .empty : .ready
+        } catch {
+            receiptLoadState = .error
+            syncStatus = "Receipts unavailable"
+        }
+
+        do {
+            followedWorldChangers = try await apiClient.fetchWorldChangers()
+        } catch {
+            syncStatus = "Shake using local people"
+        }
+
+        do {
+            reachRewards = try await apiClient.fetchReachRewards()
+            trainingCredentials = try await apiClient.fetchTrainingCredentials()
+        } catch {
+            syncStatus = "Saved rewards are ready"
+        }
+
+        persist()
     }
 
     private func update(_ action: LocalAction, status: EventStatus, trustTier: TrustTier, reviewNote: String) {
@@ -331,12 +680,17 @@ final class HandprintStore: ObservableObject {
             profile: profile,
             actions: actions,
             marks: marks,
+            organizerProfiles: organizerProfiles,
+            impactReceipts: impactReceipts,
+            reachRewards: reachRewards,
+            trainingCredentials: trainingCredentials,
             rsvps: rsvps,
             selectedActionId: selectedActionId,
             isOnboarded: isOnboarded,
             authState: authState,
             locationPermission: locationPermission,
-            reports: reports
+            reports: reports,
+            followedWorldChangers: followedWorldChangers
         )
         guard let data = try? JSONEncoder().encode(state) else { return }
         UserDefaults.standard.set(data, forKey: persistenceKey)
@@ -359,6 +713,67 @@ final class HandprintStore: ObservableObject {
         isOnboarded = state.isOnboarded
         authState = state.authState
         locationPermission = state.locationPermission
+        followedWorldChangers = state.followedWorldChangers ?? MockHandprintData.followedWorldChangers
+        organizerProfiles = state.organizerProfiles ?? MockHandprintData.organizerProfiles
+        impactReceipts = state.impactReceipts ?? MockHandprintData.impactReceipts
+        reachRewards = state.reachRewards ?? MockHandprintData.reachRewards
+        trainingCredentials = state.trainingCredentials ?? MockHandprintData.trainingCredentials
+    }
+
+    private func persistProfileChange() {
+        persist()
+        let nextProfile = profile
+        Task {
+            do {
+                try await apiClient.updateProfileSettings(profile: nextProfile)
+                await MainActor.run { syncStatus = "Profile settings synced" }
+            } catch {
+                await MainActor.run { syncStatus = "Profile settings saved locally" }
+            }
+        }
+    }
+
+    private func updateApproximateCommunity(from location: CLLocation) async {
+        if let nearest = nearestKnownCommunity(to: location), nearest.distanceMiles <= 80 {
+            profile.launchCommunity = nearest.community.label
+            locationPermission = .approximateAllowed
+            syncStatus = "Nearest city set to \(nearest.community.label)"
+            persistProfileChange()
+            return
+        }
+
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            guard let placemark = placemarks.first else {
+                if let nearest = nearestKnownCommunity(to: location) {
+                    profile.launchCommunity = nearest.community.label
+                    locationPermission = .approximateAllowed
+                    syncStatus = "Nearest known city set to \(nearest.community.label)"
+                    persistProfileChange()
+                } else {
+                    syncStatus = "Location found, but no nearby town was available."
+                }
+                return
+            }
+            let city = placemark.locality ?? placemark.subLocality ?? placemark.administrativeArea ?? profile.launchCommunity
+            let state = placemark.administrativeArea
+            let label = [city, state]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .removingAdjacentDuplicates()
+                .joined(separator: ", ")
+            profile.launchCommunity = label.isEmpty ? profile.launchCommunity : label
+            locationPermission = .approximateAllowed
+            syncStatus = "Approximate area set to \(profile.launchCommunity)"
+            persistProfileChange()
+        } catch {
+            syncStatus = "Location found, but reverse lookup failed."
+            persist()
+        }
+    }
+
+    private func nearestKnownCommunity(to location: CLLocation) -> (community: KnownCommunity, distanceMiles: Double)? {
+        KnownCommunity.nearest(to: location)
     }
 
     private func loadPublicProfile(handle: String) {
@@ -367,7 +782,7 @@ final class HandprintStore: ObservableObject {
                 let payload = try await apiClient.fetchPublicProfile(handle: handle)
                 await MainActor.run {
                     loadedPublicProfile = payload
-                    syncStatus = backendConfiguration.usesMockData ? "Using local pilot data" : "Public profile loaded"
+                    syncStatus = backendConfiguration.usesMockData ? "Handprint is ready" : "Public profile loaded"
                 }
             } catch {
                 await MainActor.run {
@@ -437,7 +852,8 @@ struct HandprintAPIClient {
                 isOnboarded: false,
                 authState: .appleReady,
                 locationPermission: .notRequested,
-                reports: []
+                reports: [],
+                followedWorldChangers: MockHandprintData.followedWorldChangers
             )
         }
 
@@ -458,7 +874,7 @@ struct HandprintAPIClient {
                     sharePath: "/u/\(MockHandprintData.profile.handle)",
                     highlights: [
                         PublicHighlightSummary(label: "Visible marks", value: "\(MockHandprintData.marks.count)"),
-                        PublicHighlightSummary(label: "Local pilot", value: MockHandprintData.profile.launchCommunity),
+                        PublicHighlightSummary(label: "Home area", value: MockHandprintData.profile.launchCommunity),
                         PublicHighlightSummary(label: "Join next", value: "3")
                     ]
                 ),
@@ -473,6 +889,73 @@ struct HandprintAPIClient {
         let url = baseURL.appending(path: "api/mobile/profile/\(handle)")
         let (data, _) = try await URLSession.shared.data(from: url)
         return try JSONDecoder().decode(PublicHandprintPayload.self, from: data)
+    }
+
+    func fetchOrganizations() async throws -> [OrganizerImpactProfile] {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return MockHandprintData.organizerProfiles
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/organizations")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(OrganizationProfilesResponse.self, from: data).profiles
+    }
+
+    func fetchImpactReceipts() async throws -> [ImpactReceipt] {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return MockHandprintData.impactReceipts
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/impact-receipts")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(ImpactReceiptsResponse.self, from: data).receipts
+    }
+
+    func fetchWorldChangers() async throws -> [FollowedWorldChanger] {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return MockHandprintData.followedWorldChangers
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/world-changers")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(WorldChangerProfilesResponse.self, from: data).profiles
+    }
+
+    func updateProfileSettings(profile: UserProfile) async throws {
+        try await post(["profile": profile], path: "api/mobile/profile")
+    }
+
+    func fetchReachRewards() async throws -> [ReachReward] {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return MockHandprintData.reachRewards
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/rewards")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(ReachRewardsResponse.self, from: data).rewards
+    }
+
+    func fetchTrainingCredentials() async throws -> [TrainingCredential] {
+        if configuration.usesMockData || configuration.baseURL == nil {
+            return MockHandprintData.trainingCredentials
+        }
+
+        let baseURL = configuration.baseURL!
+        let url = baseURL.appending(path: "api/mobile/training-credentials")
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(TrainingCredentialsResponse.self, from: data).credentials
+    }
+
+    func setOrganizationFollow(organizerId: String, saved: Bool) async throws {
+        try await post(OrganizationFollowPayload(organizerId: organizerId, savedByViewer: saved), path: "api/organizers")
+    }
+
+    func setWorldChangerFollow(worldChanger: FollowedWorldChanger) async throws {
+        try await post(WorldChangerFollowPayload(worldChanger: worldChanger), path: "api/mobile/world-changers")
     }
 
     func rsvp(actionId: String, status: RsvpStatus) async throws {
@@ -496,6 +979,28 @@ struct HandprintAPIClient {
         try await post(report, path: "api/mobile/report")
     }
 
+    func reviewSocialText(_ text: String, surface: String) async throws -> AffirmationReview {
+        try await postForResponse(
+            ["action": "moderation_review", "surface": surface, "text": text],
+            path: "api/mobile/social",
+            responseType: SocialReviewResponse.self
+        ).review ?? AffirmationReview(status: .ready, issues: [], suggestion: text)
+    }
+
+    func saveShareDraft(platformId: String, message: String) async throws {
+        try await post(
+            ["action": "save_share_draft", "platformId": platformId, "message": message],
+            path: "api/mobile/social"
+        )
+    }
+
+    func postSocialComment(targetType: String, targetId: String, text: String) async throws {
+        try await post(
+            ["action": "create_comment", "targetType": targetType, "targetId": targetId, "text": text],
+            path: "api/mobile/social"
+        )
+    }
+
     private func post<T: Encodable>(_ payload: T, path: String) async throws {
         guard !configuration.usesMockData, let baseURL = configuration.baseURL else { return }
 
@@ -508,6 +1013,24 @@ struct HandprintAPIClient {
         if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
             throw URLError(.badServerResponse)
         }
+    }
+
+    private func postForResponse<T: Encodable, R: Decodable>(_ payload: T, path: String, responseType: R.Type) async throws -> R {
+        guard !configuration.usesMockData, let baseURL = configuration.baseURL else {
+            throw URLError(.unsupportedURL)
+        }
+
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(payload)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(responseType, from: data)
     }
 }
 
@@ -523,6 +1046,7 @@ private struct OrganizerSubmissionPayload: Encodable {
     var duration: String
     var capacity: Int
     var category: String
+    var listingType: String
     var summary: String
     var skills: [String]
     var safetyNote: String
@@ -540,10 +1064,66 @@ private struct OrganizerSubmissionPayload: Encodable {
         duration = draft.duration
         capacity = draft.capacity
         category = draft.category.rawValue
+        listingType = draft.listingType.rawValue
         summary = draft.summary
         skills = createdAction.skills
         safetyNote = draft.safetyNote
         actionId = createdAction.id
+    }
+}
+
+private struct OrganizationProfilesResponse: Decodable {
+    var profiles: [OrganizerImpactProfile]
+}
+
+private struct ImpactReceiptsResponse: Decodable {
+    var receipts: [ImpactReceipt]
+}
+
+private struct WorldChangerProfilesResponse: Decodable {
+    var profiles: [FollowedWorldChanger]
+}
+
+private struct ReachRewardsResponse: Decodable {
+    var rewards: [ReachReward]
+}
+
+private struct TrainingCredentialsResponse: Decodable {
+    var credentials: [TrainingCredential]
+}
+
+private extension Array where Element: Equatable {
+    func removingAdjacentDuplicates() -> [Element] {
+        reduce(into: []) { result, element in
+            if result.last != element {
+                result.append(element)
+            }
+        }
+    }
+}
+
+private struct OrganizationFollowPayload: Encodable {
+    var followUpdate: FollowUpdate
+
+    init(organizerId: String, savedByViewer: Bool) {
+        followUpdate = FollowUpdate(organizerId: organizerId, savedByViewer: savedByViewer)
+    }
+
+    struct FollowUpdate: Encodable {
+        var organizerId: String
+        var savedByViewer: Bool
+    }
+}
+
+private struct WorldChangerFollowPayload: Encodable {
+    var handle: String
+    var savedByViewer: Bool
+    var profile: FollowedWorldChanger
+
+    init(worldChanger: FollowedWorldChanger) {
+        handle = worldChanger.handle
+        savedByViewer = worldChanger.savedByViewer
+        profile = worldChanger
     }
 }
 
